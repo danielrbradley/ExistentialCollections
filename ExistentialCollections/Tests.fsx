@@ -21,6 +21,8 @@ let list =
       5, Known "A" ]
 
 let exList = list |> ExList.ofList
-let filteredExList = exList |> ExList.filter (snd >> optionStringStartsWithLetter)
-let filteredNums = filteredExList |> ExList.map fst
-let groupedExList = exList |> ExList.groupBy snd
+let filtered = exList |> ExList.filter (snd >> optionStringStartsWithLetter)
+let filteredNums = filtered |> ExList.map fst
+let grouped = exList |> ExList.groupBy snd
+let groupedFiltered = filtered |> ExList.groupBy snd
+let total = filteredNums |> ExList.sum
