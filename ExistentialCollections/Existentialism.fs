@@ -8,9 +8,14 @@ type Awareness<'a> =
     | Known of 'a
     | Unknown
 
+type Estimation<'a> =
+    { ExcludingUnknowns : 'a
+      Minimum : 'a
+      Maximum : 'a }
+
 type ExNumber<'a> =
     | Exact of 'a
-    | Estimation of excludingUnknowns:'a * min:'a * max:'a
+    | Estimation of Estimation<'a>
 
 type ExList<'a> = (Existance * 'a) list
 
@@ -70,11 +75,19 @@ module ExList =
             | Exists ->
                 match aggregate with
                 | Exact value -> Exact (value + item)
-                | Estimation (excludingUnknowns, min, max) -> Estimation (excludingUnknowns + item, min + item, max + item)
+                | Estimation (estimation) -> 
+                    Estimation { ExcludingUnknowns = estimation.ExcludingUnknowns + item
+                                 Minimum = estimation.Minimum + item
+                                 Maximum = estimation.Maximum + item }
             | Speculative when item <> zero ->
                 match aggregate with
-                | Exact value -> Estimation (value + item, value + (min item zero), value + (max item zero))
-                | Estimation (excludingUnknowns, currentMin, currentMax) -> 
-                    Estimation (excludingUnknowns + item, currentMin + (min item zero), currentMax + (max item zero))
+                | Exact value -> 
+                    Estimation { ExcludingUnknowns = value + item
+                                 Minimum = value + (min item zero)
+                                 Maximum = value + (max item zero) }
+                | Estimation estimation -> 
+                    Estimation { ExcludingUnknowns = estimation.ExcludingUnknowns + item
+                                 Minimum = estimation.Minimum + (min item zero)
+                                 Maximum = estimation.Maximum + (max item zero) }
             | _ -> aggregate
         List.foldBack fold source (Exact zero)
