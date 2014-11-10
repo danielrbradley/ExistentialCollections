@@ -12,11 +12,11 @@ type ExNumber<'a> =
     | Exact of 'a
     | Estimation of excludingUnknowns:'a * min:'a * max:'a
 
-type ExistentialList<'a> = (Existance * 'a) list
+type ExList<'a> = (Existance * 'a) list
 
-type ExistentialMap<'a, 'b when 'a : comparison> = Map<Existance * 'a, 'b>
+type ExMap<'a, 'b when 'a : comparison> = Map<Existance * 'a, 'b>
 
-module Option = 
+module private Option = 
     let getOrDefault defaultValue opt = 
         match opt with
         | Some v -> v
@@ -24,18 +24,18 @@ module Option =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ExList = 
-    let ofList source : ExistentialList<'a> = source |> List.map (fun item -> Exists, item)
+    let ofList source : ExList<'a> = source |> List.map (fun item -> Exists, item)
     
-    let filter (predicate : 'a -> Awareness<bool>) (source : ExistentialList<'a>) : ExistentialList<'a> = 
-        let folder (existance : Existance, item : 'a) (filtered : ExistentialList<'a>) : ExistentialList<'a> = 
+    let filter (predicate : 'a -> Awareness<bool>) (source : ExList<'a>) : ExList<'a> = 
+        let folder (existance : Existance, item : 'a) (filtered : ExList<'a>) : ExList<'a> = 
             match item |> predicate with
             | Unknown -> (Speculative, item) :: filtered
             | Known true -> (existance, item) :: filtered
             | Known false -> filtered
         List.foldBack folder source []
     
-    let groupBy (keySelector : 'a -> Awareness<'b>) (source : ExistentialList<'a>) : ExistentialMap<Awareness<'b>, ExistentialList<'a>> = 
-        let folder (existance : Existance, item : 'a) (groups : ExistentialMap<Awareness<'b>, ExistentialList<'a>>) : ExistentialMap<Awareness<'b>, ExistentialList<'a>> = 
+    let groupBy (keySelector : 'a -> Awareness<'b>) (source : ExList<'a>) : ExMap<Awareness<'b>, ExList<'a>> = 
+        let folder (existance : Existance, item : 'a) (groups : ExMap<Awareness<'b>, ExList<'a>>) : ExMap<Awareness<'b>, ExList<'a>> = 
             let key = 
                 match keySelector item with
                 | Unknown -> Speculative, Unknown
@@ -60,10 +60,10 @@ module ExList =
             | _, Known k -> addedtoOwnGroup
         List.foldBack folder source Map.empty
     
-    let map (mapping : 'a -> 'b) (source : ExistentialList<'a>) : ExistentialList<'b> = 
+    let map (mapping : 'a -> 'b) (source : ExList<'a>) : ExList<'b> = 
         source |> List.map (fun (ex, item) -> ex, mapping item)
 
-    let inline sum (source : ExistentialList<'a>) : ExNumber<'a> when ^a : (static member ( + ) :  ^a *  ^a ->  ^a) and ^a : (static member Zero :  ^a) =
+    let inline sum (source : ExList<'a>) : ExNumber<'a> when ^a : (static member ( + ) :  ^a *  ^a ->  ^a) and ^a : (static member Zero :  ^a) =
         let zero = LanguagePrimitives.GenericZero< (^a) >
         let fold (existance:Existance, item:'a) (aggregate : ExNumber<'a>) : ExNumber<'a> =
             match existance with
