@@ -50,6 +50,7 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Compile Include="Existentialism.fs" />
+    <None Include="PortfolioExample.fsx" />
     <None Include="Tests.fsx" />
   </ItemGroup>
   <ItemGroup>

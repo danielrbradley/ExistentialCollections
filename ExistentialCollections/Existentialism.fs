@@ -7,6 +7,12 @@ type Existance =
 type Awareness<'a> = 
     | Known of 'a
     | Unknown
+    static member inline get_Zero () : Awareness<'b> =
+        Known (LanguagePrimitives.GenericZero< (^b) >)
+    static member inline (+) (x, y) = 
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue + yValue)
+        | _, _ -> Unknown
 
 type Estimation<'a> =
     { ExcludingUnknowns : 'a
@@ -21,11 +27,25 @@ type ExList<'a> = (Existance * 'a) list
 
 type ExMap<'a, 'b when 'a : comparison> = Map<Existance * 'a, 'b>
 
+type ExLookup<'a, 'b when 'a : comparison> = ExMap<'a, ExList<'b>>
+
 module private Option = 
     let getOrDefault defaultValue opt = 
         match opt with
         | Some v -> v
         | None -> defaultValue
+
+[<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
+module Awareness =
+    let fromOption opt =
+        match opt with
+        | Some value -> Known value
+        | None -> Unknown
+
+    let map (mapping : 'a -> 'b) (source : Awareness<'a>) : Awareness<'b> =
+        match source with
+        | Known value -> Known <| mapping value
+        | Unknown -> Unknown
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ExList = 
@@ -39,8 +59,8 @@ module ExList =
             | Known false -> filtered
         List.foldBack folder source []
     
-    let groupBy (keySelector : 'a -> Awareness<'b>) (source : ExList<'a>) : ExMap<Awareness<'b>, ExList<'a>> = 
-        let folder (existance : Existance, item : 'a) (groups : ExMap<Awareness<'b>, ExList<'a>>) : ExMap<Awareness<'b>, ExList<'a>> = 
+    let groupBy (keySelector : 'a -> Awareness<'b>) (source : ExList<'a>) : ExLookup<Awareness<'b>, 'a> = 
+        let folder (existance : Existance, item : 'a) (groups : ExLookup<Awareness<'b>, 'a>) : ExLookup<Awareness<'b>, 'a> = 
             let key = 
                 match keySelector item with
                 | Unknown -> Speculative, Unknown
@@ -91,3 +111,16 @@ module ExList =
                                  Maximum = estimation.Maximum + (max item zero) }
             | _ -> aggregate
         List.foldBack fold source (Exact zero)
+
+module ExLookup =
+    let map (projection : 'k -> 'a -> 'b) (source : ExLookup<'k, 'a>) : ExLookup<'k, 'b> =
+        source |> Map.map (fun (_,key) list -> list |> ExList.map (projection key))
+
+    let inline sum (source : ExLookup<'a, 'b>) : ExMap<'a, ExNumber<'b>> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
+        source
+        |> Map.map (fun _ exList -> exList |> ExList.sum)
+
+    let inline sumBy (projection : 'a -> 'b) (source : ExLookup<'key,'a>) : ExMap<'key, ExNumber<'b>> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
+        source
+        |> map (fun _ -> projection)
+        |> sum
