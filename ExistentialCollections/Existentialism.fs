@@ -13,6 +13,46 @@ type Awareness<'a> =
         match x, y with
         | Known xValue, Known yValue -> Known(xValue + yValue)
         | _, _ -> Unknown
+    static member inline (-) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue - yValue)
+        | _, _ -> Unknown
+    static member inline (*) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue * yValue)
+        | _, _ -> Unknown
+    static member inline (/) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue / yValue)
+        | _, _ -> Unknown
+    static member inline (%) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue % yValue)
+        | _, _ -> Unknown
+    static member inline (&&&) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue &&& yValue)
+        | _, _ -> Unknown
+    static member inline (|||) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue ||| yValue)
+        | _, _ -> Unknown
+    static member inline (^^^) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue ^^^ yValue)
+        | _, _ -> Unknown
+    static member inline (<<<) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue <<< yValue)
+        | _, _ -> Unknown
+    static member inline (~~~) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue ~~~ yValue)
+        | _, _ -> Unknown
+    static member inline (>>>) (x, y) =
+        match x, y with
+        | Known xValue, Known yValue -> Known(xValue >>> yValue)
+        | _, _ -> Unknown
 
 type Estimation<'a> =
     { ExcludingUnknowns : 'a
