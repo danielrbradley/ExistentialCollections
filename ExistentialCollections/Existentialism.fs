@@ -164,6 +164,13 @@ module ExList =
             | _ -> aggregate
         List.foldBack fold source (Exact zero)
 
+    let inline sumBy (mapping : 'a -> 'b) (source : ExList<'a>) : ExNumber<'b> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
+        source |> map mapping |> sum
+
+module ExMap =
+    let map (projection : 'k -> 'a -> 'b) (source : ExMap<'k, 'a>) : ExMap<'k, 'b> =
+        source |> Map.map (fun key -> projection key.Value)
+
 module ExLookup =
     let map (projection : 'k -> 'a -> 'b) (source : ExLookup<'k, 'a>) : ExLookup<'k, 'b> =
         source |> Map.map (fun key list -> list |> ExList.map (projection key.Value))
@@ -174,5 +181,4 @@ module ExLookup =
 
     let inline sumBy (projection : 'a -> 'b) (source : ExLookup<'key,'a>) : ExMap<'key, ExNumber<'b>> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
         source
-        |> map (fun _ -> projection)
-        |> sum
+        |> ExMap.map (fun _ -> ExList.sumBy projection)
