@@ -66,7 +66,7 @@ type ExNumber<'a> =
     | Exact of 'a
     | Estimation of Estimation<'a>
 
-type ExList<'a> = (Existance<'a>) list
+type ExList<'a> = Existance<'a> list
 
 type ExMap<'a, 'b when 'a : comparison> = Map<Existance<'a>, 'b>
 
@@ -166,6 +166,29 @@ module ExList =
 
     let inline sumBy (mapping : 'a -> 'b) (source : ExList<'a>) : ExNumber<'b> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
         source |> map mapping |> sum
+
+    let exists (predicate : 'a -> bool) (source : ExList<'a>) : Awareness<bool> =
+        let rec exists' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
+            match remaining with
+            | head :: tail ->
+                match head, predicate head.Value with
+                | _, false -> exists' state tail
+                | Exists _, true -> Known true
+                | Speculative _, true -> exists' Unknown tail
+            | [] -> state
+        exists' (Known false) source
+
+    let existsAwareness (predicate : 'a -> Awareness<bool>) (source : ExList<'a>) : Awareness<bool> =
+        let rec exists' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
+            match remaining with
+            | head :: tail ->
+                match head, predicate head.Value with
+                | _, Unknown -> exists' Unknown tail
+                | _, Known false -> exists' state tail
+                | Exists _, Known true -> Known true
+                | Speculative _, Known true -> exists' Unknown tail
+            | [] -> state
+        exists' (Known false) source
 
 module ExMap =
     let map (projection : 'k -> 'a -> 'b) (source : ExMap<'k, 'a>) : ExMap<'k, 'b> =

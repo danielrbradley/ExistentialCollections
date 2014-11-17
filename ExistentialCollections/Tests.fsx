@@ -26,3 +26,8 @@ let filteredNums = filtered |> ExList.map fst
 let grouped = exList |> ExList.groupBy snd
 let groupedFiltered = filtered |> ExList.groupBy snd
 let total = filteredNums |> ExList.sum
+let hasC = filtered |> ExList.existsAwareness (fun (_, value) -> value |> Awareness.map (fun s -> s = "C"))
+let hasC2 = filtered |> ExList.exists (fun (_, value) -> value = Known "C")
+let hasD = filtered |> ExList.existsAwareness (fun (_, value) -> value |> Awareness.map (fun s -> s = "D"))
+let hasD2 = filtered |> ExList.exists (fun (_, value) -> value = Known "D")
+let hasUnknown = [Speculative "D"] |> ExList.exists (fun v -> v = "D")
