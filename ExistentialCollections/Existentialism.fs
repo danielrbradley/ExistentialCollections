@@ -98,8 +98,29 @@ module Awareness =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ExList = 
-    let ofList source : ExList<'a> = source |> List.map (fun item -> Exists item)
-    
+    let exists (predicate : 'a -> bool) (source : ExList<'a>) : Awareness<bool> =
+        let rec exists' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
+            match remaining with
+            | head :: tail ->
+                match head, predicate head.Value with
+                | _, false -> exists' state tail
+                | Exists _, true -> Known true
+                | Speculative _, true -> exists' Unknown tail
+            | [] -> state
+        exists' (Known false) source
+
+    let existsAwareness (predicate : 'a -> Awareness<bool>) (source : ExList<'a>) : Awareness<bool> =
+        let rec exists' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
+            match remaining with
+            | head :: tail ->
+                match head, predicate head.Value with
+                | _, Unknown -> exists' Unknown tail
+                | _, Known false -> exists' state tail
+                | Exists _, Known true -> Known true
+                | Speculative _, Known true -> exists' Unknown tail
+            | [] -> state
+        exists' (Known false) source
+
     let filter (predicate : 'a -> Awareness<bool>) (source : ExList<'a>) : ExList<'a> = 
         let folder (item : Existance<'a>) (filtered : ExList<'a>) : ExList<'a> =
             let value = item.Value
@@ -139,6 +160,8 @@ module ExList =
     let map (mapping : 'a -> 'b) (source : ExList<'a>) : ExList<'b> = 
         source |> List.map (Existance.map mapping)
 
+    let ofList source : ExList<'a> = source |> List.map (fun item -> Exists item)
+
     let inline sum (source : ExList<'a>) : ExNumber<'a> when ^a : (static member ( + ) :  ^a *  ^a ->  ^a) and ^a : (static member Zero :  ^a) =
         let zero = LanguagePrimitives.GenericZero< (^a) >
 
@@ -166,29 +189,6 @@ module ExList =
 
     let inline sumBy (mapping : 'a -> 'b) (source : ExList<'a>) : ExNumber<'b> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
         source |> map mapping |> sum
-
-    let exists (predicate : 'a -> bool) (source : ExList<'a>) : Awareness<bool> =
-        let rec exists' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
-            match remaining with
-            | head :: tail ->
-                match head, predicate head.Value with
-                | _, false -> exists' state tail
-                | Exists _, true -> Known true
-                | Speculative _, true -> exists' Unknown tail
-            | [] -> state
-        exists' (Known false) source
-
-    let existsAwareness (predicate : 'a -> Awareness<bool>) (source : ExList<'a>) : Awareness<bool> =
-        let rec exists' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
-            match remaining with
-            | head :: tail ->
-                match head, predicate head.Value with
-                | _, Unknown -> exists' Unknown tail
-                | _, Known false -> exists' state tail
-                | Exists _, Known true -> Known true
-                | Speculative _, Known true -> exists' Unknown tail
-            | [] -> state
-        exists' (Known false) source
 
 module ExMap =
     let map (projection : 'k -> 'a -> 'b) (source : ExMap<'k, 'a>) : ExMap<'k, 'b> =
