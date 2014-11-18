@@ -84,6 +84,9 @@ module Existance =
         | Exists x -> Exists (mapping x)
         | Speculative x -> Speculative (mapping x)
 
+    let value (item : Existance<'a>) : 'a =
+        item.Value
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Awareness =
     let fromOption opt =
@@ -98,6 +101,12 @@ module Awareness =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ExList = 
+    let append (source1 : ExList<'a>) (source2 : ExList<'a>) : ExList<'a> =
+        List.append source1 source2
+    
+    let concat (lists : ExList<'a> seq) : ExList<'a> = List.concat lists
+    let empty : ExList<'a> = []
+    
     let exists (predicate : 'a -> bool) (source : ExList<'a>) : Awareness<bool> =
         let rec exists' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
             match remaining with
@@ -189,6 +198,9 @@ module ExList =
 
     let inline sumBy (mapping : 'a -> 'b) (source : ExList<'a>) : ExNumber<'b> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
         source |> map mapping |> sum
+
+    let values (source : ExList<'a>) : 'a list =
+        source |> List.map (fun item -> item.Value)
 
 module ExMap =
     let map (projection : 'k -> 'a -> 'b) (source : ExMap<'k, 'a>) : ExMap<'k, 'b> =
