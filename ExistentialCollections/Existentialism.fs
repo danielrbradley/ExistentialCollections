@@ -104,6 +104,26 @@ module ExList =
     let append (source1 : ExList<'a>) (source2 : ExList<'a>) : ExList<'a> =
         List.append source1 source2
     
+    let choose (chooser : 'a -> 'b option) (source : ExList<'a>) : ExList<'b> =
+        let fold (item : Existance<'a>) target =
+            match item with
+            | Exists value ->
+                match chooser value with
+                | None -> target
+                | Some chosen -> Exists chosen :: target
+            | Speculative value ->
+                match chooser value with
+                | None -> target
+                | Some chosen -> Speculative chosen :: target
+        List.foldBack fold source []
+
+    let collect (mapping : 'a -> 'b list) (source : ExList<'a>) : ExList<'b> =
+        let fold (item : Existance<'a>) target =
+            match item with
+            | Exists value -> List.append (value |> mapping |> List.map Exists) target
+            | Speculative value -> List.append (value |> mapping |> List.map Speculative) target
+        List.foldBack fold source []
+
     let concat (lists : ExList<'a> seq) : ExList<'a> = List.concat lists
     let empty : ExList<'a> = []
     
@@ -139,6 +159,22 @@ module ExList =
                 | Unknown -> Speculative value :: filtered
         List.foldBack folder source []
     
+    let forall (predicate : 'a -> bool) (source : ExList<'a>) : Existance<bool> =
+        let rec forall' (state : Existance<bool>) (remaining : ExList<'a>) : Existance<bool> =
+            match remaining with
+            | [] -> state
+            | head :: tail ->
+                match head with
+                | Exists value -> 
+                    match predicate value with
+                    | true -> forall' state tail
+                    | false -> Exists false
+                | Speculative value ->
+                    match predicate value with
+                    | true -> forall' state tail
+                    | false -> forall' (Speculative false) tail
+        forall' (Exists true) source
+
     let groupBy (keySelector : 'a -> Awareness<'b>) (source : ExList<'a>) : ExLookup<Awareness<'b>, 'a> = 
         let folder (item : Existance<'a>) (groups : ExLookup<Awareness<'b>, 'a>) : ExLookup<Awareness<'b>, 'a> = 
             let itemValue = item.Value
