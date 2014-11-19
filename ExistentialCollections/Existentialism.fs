@@ -202,10 +202,22 @@ module ExList =
             | Known k -> addedtoOwnGroup
         List.foldBack folder source Map.empty
     
+    let head (source : ExList<'a>) : Existance<'a> = source.Head
+
+    let init (length : int) (initialiser : int -> 'a) : ExList<'a> =
+        List.init length (initialiser >> Exists)
+
+    let isEmpty (source : ExList<'a>) : bool = source.IsEmpty
+    let iter (action : Existance<'a> -> unit) (list : ExList<'a>) : unit = List.iter action list
+    let length (source : ExList<'a>) : int = source.Length
+
     let map (mapping : 'a -> 'b) (source : ExList<'a>) : ExList<'b> = 
         source |> List.map (Existance.map mapping)
 
     let ofList source : ExList<'a> = source |> List.map (fun item -> Exists item)
+    let ofArray (source : 'a []) : ExList<'a> = source |> List.ofArray |> ofList
+    let ofSeq (source : 'a seq) : ExList<'a> = source |> List.ofSeq |> ofList
+    let rev (source : ExList<'a>) : ExList<'a> = List.rev source
 
     let inline sum (source : ExList<'a>) : ExNumber<'a> when ^a : (static member ( + ) :  ^a *  ^a ->  ^a) and ^a : (static member Zero :  ^a) =
         let zero = LanguagePrimitives.GenericZero< (^a) >
@@ -234,6 +246,8 @@ module ExList =
 
     let inline sumBy (mapping : 'a -> 'b) (source : ExList<'a>) : ExNumber<'b> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
         source |> map mapping |> sum
+
+    let tail (list : ExList<'a>) = list.Tail
 
     let values (source : ExList<'a>) : 'a list =
         source |> List.map (fun item -> item.Value)
