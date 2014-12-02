@@ -1,5 +1,7 @@
 ﻿namespace ExistentialCollections
 
+// Note to self - on don't try to continue on summing unknowns or speculations, instead look at modelling the failure case to expain why it's not possible.
+
 type Existance<'a> = 
     | Exists of 'a
     | Speculative of 'a
@@ -56,15 +58,6 @@ type Awareness<'a> =
         match x, y with
         | Known xValue, Known yValue -> Known(xValue >>> yValue)
         | _, _ -> Unknown
-
-type Estimation<'a> =
-    { ExcludingUnknowns : 'a
-      Minimum : 'a
-      Maximum : 'a }
-
-type ExNumber<'a> =
-    | Exact of 'a
-    | Estimation of Estimation<'a>
 
 type ExList<'a> = Existance<'a> list
 
@@ -219,32 +212,19 @@ module ExList =
     let ofSeq (source : 'a seq) : ExList<'a> = source |> List.ofSeq |> ofList
     let rev (source : ExList<'a>) : ExList<'a> = List.rev source
 
-    let inline sum (source : ExList<'a>) : ExNumber<'a> when ^a : (static member ( + ) :  ^a *  ^a ->  ^a) and ^a : (static member Zero :  ^a) =
+    let inline sum (source : ExList<'a>) : Awareness<'a> when ^a : (static member ( + ) :  ^a *  ^a ->  ^a) and ^a : (static member Zero :  ^a) =
         let zero = LanguagePrimitives.GenericZero< (^a) >
+        let rec sumInternal (remaining : ExList<'a>) (aggregate : 'a) : Awareness<'a> =
+            match remaining with
+            | [] -> Known aggregate
+            | head :: tail ->
+                match head with
+                | Speculative _ -> Unknown
+                | Exists value ->
+                    sumInternal tail (aggregate + value)
+        sumInternal source zero
 
-        let fold (existance : Existance<'a>) (aggregate : ExNumber<'a>) : ExNumber<'a> =
-            match existance with
-            | Exists item ->
-                match aggregate with
-                | Exact value -> Exact (value + item)
-                | Estimation (estimation) -> 
-                    Estimation { ExcludingUnknowns = estimation.ExcludingUnknowns + item
-                                 Minimum = estimation.Minimum + item
-                                 Maximum = estimation.Maximum + item }
-            | Speculative item when item <> zero ->
-                match aggregate with
-                | Exact value -> 
-                    Estimation { ExcludingUnknowns = value + item
-                                 Minimum = value + (min item zero)
-                                 Maximum = value + (max item zero) }
-                | Estimation estimation -> 
-                    Estimation { ExcludingUnknowns = estimation.ExcludingUnknowns + item
-                                 Minimum = estimation.Minimum + (min item zero)
-                                 Maximum = estimation.Maximum + (max item zero) }
-            | _ -> aggregate
-        List.foldBack fold source (Exact zero)
-
-    let inline sumBy (mapping : 'a -> 'b) (source : ExList<'a>) : ExNumber<'b> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
+    let inline sumBy (mapping : 'a -> 'b) (source : ExList<'a>) : Awareness<'b> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
         source |> map mapping |> sum
 
     let tail (list : ExList<'a>) = list.Tail
@@ -260,10 +240,10 @@ module ExLookup =
     let map (projection : 'k -> 'a -> 'b) (source : ExLookup<'k, 'a>) : ExLookup<'k, 'b> =
         source |> Map.map (fun key list -> list |> ExList.map (projection key.Value))
 
-    let inline sum (source : ExLookup<'a, 'b>) : ExMap<'a, ExNumber<'b>> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
+    let inline sum (source : ExLookup<'a, 'b>) : ExMap<'a, Awareness<'b>> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
         source
         |> Map.map (fun _ exList -> exList |> ExList.sum)
 
-    let inline sumBy (projection : 'a -> 'b) (source : ExLookup<'key,'a>) : ExMap<'key, ExNumber<'b>> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
+    let inline sumBy (projection : 'a -> 'b) (source : ExLookup<'key,'a>) : ExMap<'key, Awareness<'b>> when ^b : (static member ( + ) :  ^b *  ^b ->  ^b) and ^b : (static member Zero :  ^b) =
         source
         |> ExMap.map (fun _ -> ExList.sumBy projection)
