@@ -14,6 +14,10 @@ type Awareness<'a> =
     | Unknown
     static member inline get_Zero () : Awareness<'b> =
         Known (LanguagePrimitives.GenericZero< (^b) >)
+    static member inline DivideByInt (x : Awareness<'b>) (y : int) : Awareness<'b> =
+        match x with
+        | Known value -> Known <| LanguagePrimitives.DivideByInt< (^b) > value y
+        | Unknown -> Unknown
     static member inline (+) (x, y) = 
         match x, y with
         | Known xValue, Known yValue -> Known(xValue + yValue)
@@ -82,6 +86,11 @@ module Existance =
 
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module Awareness =
+    let inline divideByInt (x : Awareness<'a>) y =
+        match x with
+        | Known x' -> Known <| LanguagePrimitives.DivideByInt x' y
+        | Unknown -> Unknown
+
     let fromOption opt =
         match opt with
         | Some value -> Known value
@@ -97,6 +106,19 @@ module ExList =
     let append (source1 : ExList<'a>) (source2 : ExList<'a>) : ExList<'a> =
         List.append source1 source2
     
+    let inline average (source : ExList<'a>) : Awareness<'a> when ^a : (static member ( + ) :  ^a *  ^a ->  ^a) and ^a : (static member Zero :  ^a)  and ^a : (static member DivideByInt :  ^a * int ->  ^a) =
+        if source = [] then raise (System.ArgumentException "The input list was empty")
+        let zero = LanguagePrimitives.GenericZero< (^a) >
+        let rec averageInternal (remaining : ExList<'a>, aggregate : 'a, count : int) : Awareness<'a> =
+            match remaining with
+            | [] -> Known (LanguagePrimitives.DivideByInt aggregate count)
+            | head :: tail ->
+                match head with
+                | Speculative _ -> Unknown
+                | Exists value ->
+                    averageInternal(tail, value + aggregate, count + 1)
+        averageInternal (source, zero, 0)
+
     let choose (chooser : 'a -> 'b option) (source : ExList<'a>) : ExList<'b> =
         let fold (item : Existance<'a>) target =
             match item with
