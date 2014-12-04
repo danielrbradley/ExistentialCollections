@@ -1,6 +1,7 @@
 ﻿namespace ExistentialCollections
 
-// Note to self - on don't try to continue on summing unknowns or speculations, instead look at modelling the failure case to expain why it's not possible.
+// Note to self - don't try to continue on summing unknowns or speculations, 
+// instead look at modelling the failure case to expain why it's not possible.
 
 type Existance<'a> = 
     | Exists of 'a
@@ -101,6 +102,11 @@ module Awareness =
         | Known value -> Known <| mapping value
         | Unknown -> Unknown
 
+    let toOption (awareness : Awareness<'a>) : Option<'a> =
+        match awareness with
+        | Known x -> Some x
+        | Unknown -> None
+
 [<CompilationRepresentation(CompilationRepresentationFlags.ModuleSuffix)>]
 module ExList = 
     let append (source1 : ExList<'a>) (source2 : ExList<'a>) : ExList<'a> =
@@ -165,7 +171,10 @@ module ExList =
             | [] -> state
         exists' (Known false) source
 
-    let filter (predicate : 'a -> Awareness<bool>) (source : ExList<'a>) : ExList<'a> = 
+    let filter (predicate : 'a -> bool) (list : ExList<'a>) : ExList<'a> =
+        List.filter (Existance.value >> predicate) list
+
+    let filterAwareness (predicate : 'a -> Awareness<bool>) (source : ExList<'a>) : ExList<'a> = 
         let folder (item : Existance<'a>) (filtered : ExList<'a>) : ExList<'a> =
             let value = item.Value
             match value |> predicate with
