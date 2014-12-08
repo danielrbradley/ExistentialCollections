@@ -129,3 +129,24 @@ module ``Filter Awareness Specifications`` =
     [<Fact>]
     let ``Unknown becomes speculative``() =
         test <@ [Exists Unknown] |> ExList.filterAwareness (fun x -> x |> Awareness.map (fun y -> y % 2 = 0)) = [Speculative Unknown] @>
+
+module ``For All Specification`` =
+    [<Fact>]
+    let ``Anything holds true for an empty list``() =
+        test <@ [] |> ExList.forall (fun _ -> false) = Known true @>
+
+    [<Fact>]
+    let ``Exists holding true gives known true``() =
+        test <@ [Exists 1] |> ExList.forall (fun x -> true) = Known true @>
+
+    [<Fact>]
+    let ``An case existing that doesn't hold is a known false``() =
+        test <@ [Exists 1] |> ExList.forall (fun x -> false) = Known false @>
+
+    [<Fact>]
+    let ``A speculative not holding gives unknown``() =
+        test <@ [Speculative 1] |> ExList.forall (fun x -> false) = Unknown @>
+
+    [<Fact>]
+    let ``Speculative holding true gives known true``() =
+        test <@ [Speculative 1] |> ExList.forall (fun x -> true) = Known true @>

@@ -182,9 +182,9 @@ module ExList =
                 | Known false -> filtered
                 | Unknown -> Speculative value :: filtered
         List.foldBack folder source []
-    
-    let forall (predicate : 'a -> bool) (source : ExList<'a>) : Existance<bool> =
-        let rec forall' (state : Existance<bool>) (remaining : ExList<'a>) : Existance<bool> =
+
+    let forall (predicate : 'a -> bool) (source : ExList<'a>) : Awareness<bool> =
+        let rec forall' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
             match remaining with
             | [] -> state
             | head :: tail ->
@@ -192,12 +192,12 @@ module ExList =
                 | Exists value -> 
                     match predicate value with
                     | true -> forall' state tail
-                    | false -> Exists false
+                    | false -> Known false
                 | Speculative value ->
                     match predicate value with
                     | true -> forall' state tail
-                    | false -> forall' (Speculative false) tail
-        forall' (Exists true) source
+                    | false -> forall' Unknown tail
+        forall' (Known true) source
 
     let groupBy (keySelector : 'a -> Awareness<'b>) (source : ExList<'a>) : ExLookup<Awareness<'b>, 'a> = 
         let folder (item : Existance<'a>) (groups : ExLookup<Awareness<'b>, 'a>) : ExLookup<Awareness<'b>, 'a> = 
