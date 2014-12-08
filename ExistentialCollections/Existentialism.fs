@@ -199,6 +199,24 @@ module ExList =
                     | false -> forall' Unknown tail
         forall' (Known true) source
 
+    let forallAwareness (predicate : 'a -> Awareness<bool>) (source : ExList<'a>) : Awareness<bool> =
+        let rec checkNext (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
+            match remaining with 
+            | [] -> state
+            | head :: tail ->
+                match head with
+                | Exists value -> 
+                    match predicate value with
+                    | Known true -> checkNext state tail
+                    | Known false -> Known false
+                    | Unknown -> Unknown
+                | Speculative value ->
+                    match predicate value with
+                    | Known true -> checkNext state tail
+                    | Known false -> checkNext Unknown tail
+                    | Unknown -> Unknown
+        checkNext (Known true) source
+
     let groupBy (keySelector : 'a -> Awareness<'b>) (source : ExList<'a>) : ExLookup<Awareness<'b>, 'a> = 
         let folder (item : Existance<'a>) (groups : ExLookup<Awareness<'b>, 'a>) : ExLookup<Awareness<'b>, 'a> = 
             let itemValue = item.Value

@@ -140,7 +140,7 @@ module ``For All Specification`` =
         test <@ [Exists 1] |> ExList.forall (fun x -> true) = Known true @>
 
     [<Fact>]
-    let ``An case existing that doesn't hold is a known false``() =
+    let ``A case existing that doesn't hold is a known false``() =
         test <@ [Exists 1] |> ExList.forall (fun x -> false) = Known false @>
 
     [<Fact>]
@@ -150,3 +150,35 @@ module ``For All Specification`` =
     [<Fact>]
     let ``Speculative holding true gives known true``() =
         test <@ [Speculative 1] |> ExList.forall (fun x -> true) = Known true @>
+
+module ``For All Awareness Specification`` =
+    let forall = ExList.forallAwareness (fun x -> x)
+    let restMatching = [Exists (Known true); Speculative (Known true)]
+
+    [<Fact>]
+    let ``Anything holds true for an empty list``() =
+        test <@ [] |> forall = Known true @>
+
+    [<Fact>]
+    let ``Exists holding true gives known true``() =
+        test <@ Exists (Known true) :: restMatching |> forall = Known true @>
+
+    [<Fact>]
+    let ``A case existing that doesn't hold is a known false``() =
+        test <@ Exists (Known false) :: restMatching |> forall = Known false @>
+
+    [<Fact>]
+    let ``A speculative not holding gives unknown``() =
+        test <@ Speculative (Known false) :: restMatching |> forall = Unknown @>
+
+    [<Fact>]
+    let ``Speculative holding true gives known true``() =
+        test <@ Speculative (Known true) :: restMatching |> forall = Known true @>
+
+    [<Fact>]
+    let ``Any existance of an unknown gives an unknown``() =
+        test <@ Exists Unknown :: restMatching |> forall = Unknown @>
+
+    [<Fact>]
+    let ``Any speculative unknown gives an unknown``() =
+        test <@ Speculative Unknown :: restMatching |> forall = Unknown @>
