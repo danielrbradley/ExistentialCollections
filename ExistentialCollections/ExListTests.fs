@@ -129,6 +129,11 @@ module ``Filter Awareness Specifications`` =
     let ``Unknown becomes speculative``() =
         test <@ [Exists Unknown] |> ExList.filterAwareness (fun x -> x |> Awareness.map (fun y -> y % 2 = 0)) = [Speculative Unknown] @>
 
+module ``Filter By Awareness Specification`` =
+    [<Fact>]
+    let ``Can filter on awareness property``() =
+        test <@ [Exists (Known 1); Exists (Known 2); Speculative (Known 4)] |> ExList.filterByAwareness (fun x -> x) (fun x -> x % 2 = 0) = [Exists (Known 2); Speculative (Known 4)] @>
+
 module ``For All Specification`` =
     [<Fact>]
     let ``Anything holds true for an empty list``() =

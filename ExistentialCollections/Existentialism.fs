@@ -183,6 +183,9 @@ module ExList =
                 | Unknown -> Speculative value :: filtered
         List.foldBack folder source []
 
+    let filterByAwareness (projection : 'a -> Awareness<'b>) (predicate : 'b -> bool) (source : ExList<'a>) : ExList<'a> = 
+        source |> filterAwareness (projection >> (Awareness.map predicate))
+
     let forall (predicate : 'a -> bool) (source : ExList<'a>) : Awareness<bool> =
         let rec forall' (state : Awareness<bool>) (remaining : ExList<'a>) : Awareness<bool> =
             match remaining with
