@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.22129.1
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ExistentialCollections", "ExistentialCollections\ExistentialCollections.fsproj", "{88CFA56C-4632-4EDC-BE22-D9A692C0D53B}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Existentialism", "Existentialism\Existentialism.fsproj", "{88CFA56C-4632-4EDC-BE22-D9A692C0D53B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
