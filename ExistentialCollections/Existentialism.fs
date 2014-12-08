@@ -1,4 +1,4 @@
-﻿namespace ExistentialCollections
+﻿namespace Existentialism
 
 // Note to self - don't try to continue on summing unknowns or speculations, 
 // instead look at modelling the failure case to expain why it's not possible.

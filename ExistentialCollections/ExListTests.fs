@@ -1,9 +1,8 @@
 ﻿namespace Tests.``ExList Specifications``
 
+open Existentialism
 open Swensen.Unquote
 open Xunit
-
-open ExistentialCollections
 
 module ``Averaging Specifications`` =
     [<Fact>]
