@@ -186,3 +186,13 @@ module ``For All Awareness Specification`` =
     [<Fact>]
     let ``Any speculative unknown gives an unknown``() =
         test <@ Speculative Unknown :: restMatching |> forall = Unknown @>
+
+module ``Group By Awareness Specification`` =
+    let group = ExList.groupByAwareness (fun x -> x)
+    [<Fact>]
+    let ``Grouping of an empty list is an empty lookup``() =
+        test <@ [] |> ExList.groupByAwareness (fun _ -> Unknown) = Map.empty @>
+
+    [<Fact>]
+    let ``Grouping knowns gives single group``() =
+        test <@ [Exists (Known 1)] |> group = ([Exists (Known 1), [Exists (Known 1)]] |> Map.ofList) @>

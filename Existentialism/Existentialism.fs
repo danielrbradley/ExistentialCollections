@@ -220,7 +220,7 @@ module ExList =
                     | Unknown -> Unknown
         checkNext (Known true) source
 
-    let groupBy (keySelector : 'a -> Awareness<'b>) (source : ExList<'a>) : ExLookup<Awareness<'b>, 'a> = 
+    let groupByAwareness (keySelector : 'a -> Awareness<'b>) (source : ExList<'a>) : ExLookup<Awareness<'b>, 'a> = 
         let folder (item : Existance<'a>) (groups : ExLookup<Awareness<'b>, 'a>) : ExLookup<Awareness<'b>, 'a> = 
             let itemValue = item.Value
             let key = 
