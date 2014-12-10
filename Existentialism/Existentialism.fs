@@ -66,6 +66,12 @@ type Awareness<'a> =
 
 type ExList<'a> = Existance<'a> list
 
+// INTERNAL MONOLOGUE:
+// Should exlookup really have keys which have existance?
+// Makes sense for ExMap because there is only one item per existance of the key?
+// But then it doesn't make sense that it could then both exist and speculatively exist.
+// So, should ExMap apply the existance to the value rather than the key
+// and likewise, ExLookup just have existance within the item list?
 type ExMap<'a, 'b when 'a : comparison> = Map<Existance<'a>, 'b>
 
 type ExLookup<'a, 'b when 'a : comparison> = ExMap<'a, ExList<'b>>
