@@ -187,12 +187,24 @@ module ``For All Awareness Specification`` =
     let ``Any speculative unknown gives an unknown``() =
         test <@ Speculative Unknown :: restMatching |> forall = Unknown @>
 
-module ``Group By Awareness Specification`` =
-    let group = ExList.groupByAwareness (fun x -> x)
+module ``Group By Specification`` =
+    let inline group x = x |> ExList.groupBy (fun x -> x)
     [<Fact>]
     let ``Grouping of an empty list is an empty lookup``() =
-        test <@ [] |> ExList.groupByAwareness (fun _ -> Unknown) = Map.empty @>
+        test <@ [] |> group = Map.empty @>
 
     [<Fact>]
     let ``Grouping knowns gives single group``() =
-        test <@ [Exists (Known 1)] |> group = ([Exists (Known 1), [Exists (Known 1)]] |> Map.ofList) @>
+        test <@ [Exists 1; Exists 1;] |> group = ([1, [Exists 1; Exists 1]] |> Map.ofList) @>
+
+    [<Fact>]
+    let ``Grouping knowns with speculatives gives single group``() =
+        test <@ [Exists 1; Speculative 1;] |> group = ([1, [Exists 1; Speculative 1]] |> Map.ofList) @>
+
+    [<Fact>]
+    let ``Grouping different values gives separate groups``() =
+        test <@ [Exists 1; Speculative 2;] |> group = ([1, [Exists 1]; 2, [Speculative 2]] |> Map.ofList) @>
+
+    [<Fact>]
+    let ``Can group by awareness``() =
+        test <@ [Exists (Known 1); Speculative (Known 1); Exists (Known 2); Exists Unknown] |> group = ([Known 1, [Exists (Known 1); Speculative (Known 1)]; Known 2, [Exists (Known 2)]; Unknown, [Exists Unknown]] |> Map.ofList) @>
