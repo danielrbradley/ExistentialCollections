@@ -66,15 +66,6 @@ let ``Can bind from unknown 2``() =
       } = unknownWithContext
     @>
 
-let unknownWithDoubleContext : Awareness<int, string> =
-  Unknown (
-    { Frame =  "context";
-      Causes =
-        [ { Frame =  "context"
-            Causes =
-              [ { Frame = "Root"
-                  Causes = [] } ] } ] })
-
 [<Fact>]
 let ``Can bind from unknown 3``() =
   test
@@ -106,4 +97,18 @@ let ``Can bind from 2 unknowns``() =
         let! x = unknownRoot
         return x + y
       } = unknownWithContext
+    @>
+
+[<Fact>]
+let ``Can bind from both unknowns``() =
+  let unknown1 = Unknown(Trace.root "Root 1")
+  let unknown2 = Unknown(Trace.root "Root 2")
+  let expected =
+    Unknown { Frame = "context"
+              Causes = [ Trace.root "Root 1"; Trace.root "Root 2" ] }
+  test
+    <@
+      Awareness.both
+        (fun () -> "context")
+        (unknown1, unknown2) = expected
     @>

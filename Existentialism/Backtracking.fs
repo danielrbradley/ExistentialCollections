@@ -24,8 +24,19 @@ module Trace =
   let addFrame frame trace =
     { Frame = frame; Causes = [trace] }
 
+  let addIfNewFrame frame trace =
+    if trace.Frame = frame then trace
+    else trace |> addFrame frame
+
+  let causesExceptSelf currentFrame trace =
+    if trace.Frame = currentFrame then trace.Causes
+    else [trace]
+
   let combine frame traces =
-    { Frame = frame; Causes = traces }
+    {
+      Frame = frame
+      Causes = traces |> List.collect (causesExceptSelf frame)
+    }
 
 type Awareness<'T, 'TFrame> = 
   | Known of 'T
@@ -44,7 +55,19 @@ module Awareness =
       let trace = unknowns |> Trace.combine (getFrame())
       Unknown trace
 
-type AwarenessBuilder<'f> (getFrame : unit -> 'f) =
+  let both (getFrame : unit -> 'f) (a : Awareness<'a, 'f>, b : Awareness<'b, 'f>) : Awareness<'a * 'b, 'f> =
+    match a, b with
+    | Known a', Known b' -> Known(a', b')
+    | Unknown t1, Unknown t2 ->
+      let frame = getFrame()
+      let causes1 = t1 |> Trace.causesExceptSelf frame
+      let causes2 = t2 |> Trace.causesExceptSelf frame
+      Unknown ({ Frame = frame; Causes = List.append causes1 causes2 })
+    | _, Unknown t | Unknown t, _ -> Unknown (Trace.addIfNewFrame(getFrame()) t)
+
+type AwarenessBuilder<'f when 'f : equality> (getFrame : unit -> 'f) =
+  member this.Zero() =
+    Unknown (Trace.root (getFrame()))
   member this.Return(x) =
     Known x
   member this.ReturnFrom(x) =
@@ -52,12 +75,15 @@ type AwarenessBuilder<'f> (getFrame : unit -> 'f) =
     | Known _ -> x
     | Unknown t ->
       Unknown (Trace.addFrame (getFrame()) t)
-  member this.Bind(a, f) =
+  member this.Bind(a : Awareness<'a, 'f>, f : 'a -> Awareness<'b, 'f>) =
     match a with
-    | Unknown t ->
-      Unknown (Trace.addFrame (getFrame()) t)
+    | Unknown t1 ->
+      Unknown (Trace.addIfNewFrame (getFrame()) t1)
     | Known x ->
-      f x
+      match f x with
+      | Known b -> Known b
+      | Unknown t ->
+        Unknown <| Trace.addIfNewFrame (getFrame()) t
 
 let awareness (getFrame) =
   new AwarenessBuilder<_>(getFrame)
