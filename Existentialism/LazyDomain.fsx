@@ -13,9 +13,9 @@ type FieldBuilder(name : string) =
         match (f x).Value with
         | Known x -> Known x
         | Unknown trace ->
-          Unknown <| NonEmptyList.append trace (NonEmptyList.singleton (FieldName name))
+          Unknown <| (trace |> Trace.addAffect (FieldName name))
       | Unknown trace->
-        Unknown <| NonEmptyList.append trace (NonEmptyList.singleton (FieldName name))
+          Unknown <| (trace |> Trace.addAffect (FieldName name))
   member this.Bind(m : Awareness<'a>, f : 'a -> Lazy<Awareness<'b>>) =
     lazy
       match m with
@@ -23,9 +23,9 @@ type FieldBuilder(name : string) =
         match (f x).Value with
         | Known x -> Known x
         | Unknown trace ->
-          Unknown <| NonEmptyList.append trace (NonEmptyList.singleton (FieldName name))
+          Unknown <| (trace |> Trace.addAffect (FieldName name))
       | Unknown trace->
-        Unknown <| NonEmptyList.append trace (NonEmptyList.singleton (FieldName name))
+          Unknown <| (trace |> Trace.addAffect (FieldName name))
 
 let field name = new FieldBuilder(name)
 
@@ -75,16 +75,16 @@ let makeAsset instrument inputFields =
       {
         PercentTotalSharesOutstanding =
           field ("PercentTotalSharesOutstanding") {
-            let! quantity, totalSharesOutstanding =
-              Awareness.both (inputFields.Quantity) (instrument.TotalSharesOutstanding)
-            return quantity / totalSharesOutstanding
+            let! quantity = inputFields.Quantity
+            let! tso = instrument.TotalSharesOutstanding
+            return quantity / tso
           }
       }
   }
 
 let asset =
   makeAsset
-    { TotalSharesOutstanding = Known 42m }
-    { Quantity = Unknown (NonEmptyList.singleton (FieldName "Quantity")) }
+    { TotalSharesOutstanding = Unknown (Trace.Root (FieldName "TotalSharesOutstanding")) }
+    { Quantity = Unknown (Trace.Root (FieldName "Quantity")) }
 
 asset.CalculatedFields.PercentTotalSharesOutstanding.Value

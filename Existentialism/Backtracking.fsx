@@ -25,87 +25,61 @@ module NonEmptyList =
     | head :: tail ->
       tail |> List.fold append head
 
-type Awareness<'a> = 
-  | Known of 'a
-  | Unknown of trace:FieldName NonEmptyList
-    static member inline get_Zero () : Awareness<'b> =
-        Known (LanguagePrimitives.GenericZero< (^b) >)
-    static member inline DivideByInt (x : Awareness<'b>) (y : int) : Awareness<'b> =
-        match x with
-        | Known value -> Known <| LanguagePrimitives.DivideByInt< (^b) > value y
-        | Unknown trace -> Unknown trace
-    static member inline (+) (x, y) = 
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue + yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (-) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue - yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (*) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue * yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (/) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue / yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (%) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue % yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (&&&) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue &&& yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (|||) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue ||| yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (^^^) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue ^^^ yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (<<<) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue <<< yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (~~~) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue ~~~ yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
-    static member inline (>>>) (x, y) =
-        match x, y with
-        | Known xValue, Known yValue -> Known(xValue >>> yValue)
-        | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-        | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
+  let cons head tail =
+    {
+      Head = head
+      Tail = tail.Head :: tail.Tail
+    }
+
+  let ofList list =
+    match list with 
+    | [] -> invalidArg "lists" "Cannot be an empty list"
+    | head :: tail ->
+      { Head = head
+        Tail = tail }
+
+type Trace<'a> =
+  | Root of 'a
+  | Affect of 'a * NonEmptyList<Trace<'a>>
+
+module Trace =
+  let start x =
+    Root x
+
+  let addAffect affect trace =
+    Affect(affect, NonEmptyList.singleton trace)
+
+  let combine affect traceA traceB =
+    Affect(affect, { Head = traceA; Tail = [traceB] })
+
+  let collect context traces =
+    Affect(context, traces)
+
+type Awareness<'T> = 
+  | Known of 'T
+  | Unknown of trace:FieldName Trace
 
 module Awareness =
-  let all (source : Awareness<'a> list) : Awareness<'a list> =
+  let all (context : FieldName) (source : Awareness<'a> list) : Awareness<'a list> =
     let unknownTraces =
       source
       |> List.choose (function
         | Known _ -> None
         | Unknown trace -> Some trace)
     if unknownTraces <> [] then
-      Unknown(NonEmptyList.collect unknownTraces)
+      unknownTraces
+      |> NonEmptyList.ofList
+      |> Trace.collect context
+      |> Unknown
     else
       Known(source |> List.map (function
         | Known x -> x
         | _ -> invalidOp "Found unknowns after check."))
 
-  let both x y =
+  let both context x y =
       match x, y with
       | Known xValue, Known yValue -> Known(xValue, yValue)
       | Unknown trace, Known _ | Known _, Unknown trace -> Unknown trace
-      | Unknown xTrace, Unknown yTrace -> Unknown (NonEmptyList.append xTrace yTrace)
+      | Unknown xTrace, Unknown yTrace ->
+        Trace.combine context xTrace yTrace
+        |> Unknown
