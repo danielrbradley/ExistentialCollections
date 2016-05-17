@@ -1,6 +1,8 @@
 ﻿#load "Backtracking.fsx"
 open Backtracking
 
+type FieldName = FieldName of string
+
 type FieldBuilder(name : string) =
   member this.Return(x) =
     lazy (Known x)

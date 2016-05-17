@@ -52,9 +52,10 @@
     <Compile Include="Existentialism.fs" />
     <Compile Include="AwarenessTests.fs" />
     <Compile Include="ExListTests.fs" />
+    <Compile Include="Backtracking.fs" />
+    <Compile Include="BacktrackingTests.fs" />
     <None Include="PortfolioExample.fsx" />
     <None Include="Tests.fsx" />
-    <None Include="Backtracking.fsx" />
     <None Include="LazyDomain.fsx" />
     <Content Include="packages.config" />
     <Content Include="app.config" />
